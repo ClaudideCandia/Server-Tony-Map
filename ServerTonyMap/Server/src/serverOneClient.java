@@ -127,11 +127,15 @@ public class serverOneClient extends Thread {
      */
     public void run() {
         String mode;
+        try{
         do {
             try {
                 System.out.println("aspetto la modalità d'uso del server dal client...");
                 mode = (String) in.readObject();
                 System.out.println("ricevuto : " + mode);
+                if(mode.equals("Close")){
+                    throw new ClientDisconnectedException("Il Client si è disconnesso");
+                }
             } catch (IOException | ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
@@ -145,7 +149,10 @@ public class serverOneClient extends Thread {
             } else if (mode.equals("File")) {
                 fileMode();
             }
-        } while (!(mode.equals("close")));
+        } while (true);
+        }catch (ClientDisconnectedException e){
+            System.out.println(e.getMessage());
+        }finally{closeConnection();}
     }
 
     /**
@@ -155,7 +162,7 @@ public class serverOneClient extends Thread {
      * @throws ClassNotFoundException Se non viene trovata la classe richiesta
      * @throws NoDataException Se i dati non sono disponibili
      */
-    public void dbMode() throws IOException, ClassNotFoundException, NoDataException {
+    public void dbMode() throws IOException, ClassNotFoundException, NoDataException, ClientDisconnectedException {
         // invio la lista delle tabelle nel db al client
         displayTables();
         // ricevo il nome della tabella selezionata dal client
@@ -164,6 +171,8 @@ public class serverOneClient extends Thread {
         System.out.println("ricevuto : " + tableName);
         if (HomeCheck(tableName)) {
             return;
+        } else if (tableName.equals("Close")) {
+            throw new ClientDisconnectedException("Client disconnesso in fase DB");
         }
         // ricevo la profondità
         System.out.println("aspetto profondità...");
@@ -193,18 +202,26 @@ public class serverOneClient extends Thread {
             String filename = (String) in.readObject();
             System.out.println("ricevuto : " + filename);
             temporaneo.salva(filename);
-        } else if (HomeCheck(save)) return;
+        } else if (HomeCheck(save)){ return;
+            } else if (save.equals("Close")) {
+            throw new ClientDisconnectedException("Client disconnesso in fase DB");
+        }
     }
 
     /**
      * Gestisce la modalità di interazione con il client per caricare un dendrogramma da file.
      */
-    public void fileMode() {
+    public void fileMode() throws ClientDisconnectedException {
         try {
             // ricevo nome file da caricare
             System.out.println("aspetto nome file da caricare");
             String nomeFile = (String) in.readObject();
             System.out.println("ricevuto : " + nomeFile);
+            if(HomeCheck(nomeFile)){
+                return;
+            }else if(nomeFile.equals("Close")){
+                throw new ClientDisconnectedException("Client disconnesso in modalità file");
+            }
             loadDedrogramFromFileOnServer(nomeFile);
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -225,4 +242,22 @@ public class serverOneClient extends Thread {
         System.out.println("blocco esecuzione per tornare alla home");
         return check;
     }
+
+    private void closeConnection() {
+        try {
+            if (in != null) {
+                in.close();
+            }
+            if (out != null) {
+                out.close();
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+            System.out.println("Connessione con il client chiusa correttamente.");
+        } catch (IOException e) {
+            System.err.println("Errore durante la chiusura della connessione: " + e.getMessage());
+        }
+    }
+
 }
