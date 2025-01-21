@@ -16,7 +16,7 @@ public class DbAccess {
 	private String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     private  String DBMS = "jdbc:mysql";
     private  String SERVER = "localhost";
-    private  String DATABASE = "mapdb";
+    private  String DATABASE = "MapDB";
     private  int PORT = 3306;
     private  String USER_ID = "MapUser";
     private  String PASSWORD = "map";
