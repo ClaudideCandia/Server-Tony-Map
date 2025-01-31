@@ -5,6 +5,7 @@ import src.distance.ClusterDistance;
 import src.exceptions.InvalidDepthException;
 
 import java.io.*;
+import java.nio.file.Paths;
 
 //**************************************************************************************************************************
 // Interfacce implementate:
@@ -114,15 +115,20 @@ public class HierachicalClusterMiner implements Serializable {
 	 * @throws IOException Lanciata in caso di un'operazione di Input/Output fallita o interrotta.
 	 * @throws ClassNotFoundException Lanciata quando si tenta di caricare una classe non trovata nel Class Loader di Java.
 	 */
-	public static HierachicalClusterMiner loaHierachicalClusterMiner(String filename) throws FileNotFoundException,
-			IOException, ClassNotFoundException {
-		FileInputStream inFile = new FileInputStream(filename + ".HCM");
-		ObjectInputStream inStream = new ObjectInputStream(inFile);
-		HierachicalClusterMiner loadedHierachicalClusterMiner = (HierachicalClusterMiner) inStream.readObject();
-		inStream.close();
-		return loadedHierachicalClusterMiner;
-	}
+	public static HierachicalClusterMiner loadHierachicalClusterMiner(String filename)
+			throws FileNotFoundException, IOException, ClassNotFoundException {
 
+		// Percorso relativo alla directory del progetto
+		String directory = Paths.get("").toAbsolutePath() + File.separator + "FileDir";
+
+		// Percorso completo del file
+		String filePath = directory + File.separator + filename;
+
+		// Lettura dell'oggetto dal file
+		try (ObjectInputStream inStream = new ObjectInputStream(new FileInputStream(filePath))) {
+			return (HierachicalClusterMiner) inStream.readObject();
+		}
+	}
 	/**
 	 * Metodo per il salvataggio su file di un oggetto {@code HierachicalClusterMiner} (Serializzazione).
 	 *
@@ -130,11 +136,26 @@ public class HierachicalClusterMiner implements Serializable {
 	 * @throws FileNotFoundException Lanciata in caso il file specificato non esista.
 	 * @throws IOException Lanciata in caso di un'operazione di Input/Output fallita o interrotta.
 	 */
-	public void salva(String filename) throws FileNotFoundException, IOException {
-		FileOutputStream outFile = new FileOutputStream(filename + ".HCM");
-		ObjectOutputStream outStream = new ObjectOutputStream(outFile);
-		outStream.writeObject(this);
-		outStream.close();
+	public void salva(String filename) throws IOException {
+		// Percorso relativo alla directory del progetto
+		String directory = Paths.get("").toAbsolutePath() + File.separator + "FileDir";
+
+		// Creazione della directory se non esiste
+		File dir = new File(directory);
+		if (!dir.exists()) {
+			dir.mkdirs(); // Crea la directory e eventuali sottodirectory
+		}
+
+		// Percorso completo del file con estensione corretta
+		String filePath = directory + File.separator + filename + ".HCM";
+
+		// Scrittura dell'oggetto nel file
+		try (ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(filePath))) {
+			outStream.writeObject(this);
+			System.out.println("Oggetto serializzato in: " + filePath);
+		}
 	}
+
+
 }
 

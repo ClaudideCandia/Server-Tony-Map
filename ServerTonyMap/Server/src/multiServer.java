@@ -24,22 +24,22 @@ public class multiServer {
      * @throws IOException Se si verifica un errore durante l'avvio del server o la gestione delle connessioni.
      */
     public static void main(String[] args) throws IOException {
-        ServerSocket s = new ServerSocket(PORT);
-        System.out.println("Server Avviato");
-        try {
-            while (true) {
-                // Si blocca finché non si verifica una connessione:
-                Socket socket = s.accept();
-                try {
-                    new serverOneClient(socket); // Gestisce il client connesso in un thread separato
-                } catch (IOException e) {
-                    // Se fallisce, chiude il socket,
-                    // altrimenti il thread gestirà la chiusura:
-                    socket.close();
+            ServerSocket s = new ServerSocket(PORT);
+            System.out.println("Server Avviato");
+            try {
+                while (true) {
+                    // Si blocca finché non si verifica una connessione:
+                    Socket socket = s.accept();
+                    try {
+                        new serverOneClient(socket); // Gestisce il client connesso in un thread separato
+                    } catch (IOException e) {
+                        // Se fallisce, chiude il socket,
+                        // altrimenti il thread gestirà la chiusura:
+                        socket.close();
+                    }
                 }
+            } finally {
+                s.close(); // Chiude il ServerSocket
             }
-        } finally {
-            s.close(); // Chiude il ServerSocket
-        }
     }
 }

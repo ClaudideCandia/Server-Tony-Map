@@ -2,7 +2,11 @@ package src;
 
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import src.clustering.HierachicalClusterMiner;
 import src.data.Data;
 import src.database.DbAccess;
@@ -78,10 +82,10 @@ public class serverOneClient extends Thread {
      * @throws IOException Se si verifica un errore di I/O
      * @throws ClassNotFoundException Se non viene trovata la classe HierachicalClusterMiner
      */
-    private void loadDedrogramFromFileOnServer(String filename) throws IOException, ClassNotFoundException {
+    private void loadDedrogramFromFileOnServer(String filename) throws IOException, ClassNotFoundException, FileNotFoundException {
         System.out.println("Ricevuto: " + filename);
 
-        HierachicalClusterMiner hcm = HierachicalClusterMiner.loaHierachicalClusterMiner(filename);
+        HierachicalClusterMiner hcm = HierachicalClusterMiner.loadHierachicalClusterMiner(filename);
         out.writeObject(hcm.toString());
     }
 
@@ -122,7 +126,45 @@ public class serverOneClient extends Thread {
     }
 
     /**
-     * Eseguito dal thread, gestisce la comunicazione con il client per ricevere le modalità d'uso
+     * Mostra i file presenti nella directory FileDir al client.
+     * @throws IOException in caso di anomalie nell'invio.
+     */
+    private void displayFiles() throws IOException {
+        String percorso = "FileDir"; // Nome della directory relativa al progetto
+        List<String> files = ottieniListaFile(percorso);
+
+        if (files != null && !files.isEmpty()) {
+            System.out.println("File nella directory: " + String.join(", ", files));
+        } else {
+            System.out.println("La directory è vuota o non accessibile.");
+        }
+        out.writeObject(files);
+    }
+
+    /**
+     * dato il nome di una directory indivuidua il path dinamicamente e memorizza in una List<String> i nomi dei file presenti (se la trova).
+     * @param percorsoRelativo stringa con il nome della directory da cercare.
+     * @return lista di stringhe ottenuta trasformando lo stream di tipo Path in uno stream di String e collezionarlo nella lista tramite: .collect(Collectors.toList()); .
+     * @throws IOException in caso di anomalie nell'invio.
+     */
+    public static List<String> ottieniListaFile(String percorsoRelativo) throws IOException {
+        // Costruisce il percorso dinamicamente per essere compatibile con il sistema operativo
+        String percorsoAssoluto = Paths.get(percorsoRelativo).toString();
+
+        File directory = new File(percorsoAssoluto);
+
+        if (directory.isDirectory()) {
+            // Usa un stream per raccogliere i nomi dei file nella lista
+            return Files.list(directory.toPath())
+                    .map(path -> path.getFileName().toString())
+                    .collect(Collectors.toList());
+        } else {
+            return List.of(); // Restituisce una lista vuota se il percorso non è valido o non è una directory
+        }
+    }
+
+    /**
+     * Eseguito dal thread al momento dell'invocazione di .start(), gestisce la comunicazione con il client per ricevere le modalità d'uso
      * e indirizzare l'utente alla modalità corretta (Database o File).
      */
     public void run() {
@@ -147,7 +189,11 @@ public class serverOneClient extends Thread {
                     throw new RuntimeException(e);
                 }
             } else if (mode.equals("File")) {
-                fileMode();
+                try {
+                    fileMode();
+                }catch (FileNotFoundException e){
+                    System.out.println(e.getMessage());
+                }
             }
         } while (true);
         }catch (ClientDisconnectedException e){
@@ -211,8 +257,10 @@ public class serverOneClient extends Thread {
     /**
      * Gestisce la modalità di interazione con il client per caricare un dendrogramma da file.
      */
-    public void fileMode() throws ClientDisconnectedException {
+    public void fileMode() throws ClientDisconnectedException, FileNotFoundException {
         try {
+            //invio  i nomi dei file
+            displayFiles();
             // ricevo nome file da caricare
             System.out.println("aspetto nome file da caricare");
             String nomeFile = (String) in.readObject();
@@ -238,8 +286,8 @@ public class serverOneClient extends Thread {
         Boolean check = false;
         if (str.equals("home")) {
             check = true;
+            System.out.println("blocco esecuzione per tornare alla home");
         }
-        System.out.println("blocco esecuzione per tornare alla home");
         return check;
     }
 
